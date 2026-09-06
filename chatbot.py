@@ -1,43 +1,54 @@
 # ============================================================
 # S V L COLLEGE
-# College AI Assistant - Chatbot Logic
+# Premium College AI Assistant - Chat Engine
 # ============================================================
 
 import re
+import difflib
+from typing import Optional, List, Dict
 
 
 # ============================================================
-# COLLEGE INFORMATION
+# COLLEGE
 # ============================================================
 
 COLLEGE_NAME = "S V L COLLEGE"
 
 
 # ============================================================
-# STAFF DATABASE
+# COLLEGE KNOWLEDGE BASE
 # ============================================================
 
 STAFF_DATA = {
     "Uma Maheshwara Rao": {
         "role": "Founder",
         "subjects": [],
-        "keywords": ["founder", "college founder"],
+        "keywords": [
+            "founder",
+            "college founder",
+            "started college",
+            "founder of college",
+        ],
         "information": [
             "Founder of our college.",
             "Guides and inspires students.",
-            "Encourages a bright future."
-        ]
+            "Encourages a bright future.",
+        ],
     },
 
     "Durga Prasad": {
         "role": "Faculty",
         "subjects": [],
-        "keywords": ["degree students"],
+        "keywords": [
+            "degree students",
+            "degree",
+            "academics",
+        ],
         "information": [
             "In-charge of degree students.",
             "Guides students in academics.",
-            "A supportive well-wisher."
-        ]
+            "A supportive well-wisher.",
+        ],
     },
 
     "Suresh": {
@@ -47,249 +58,539 @@ STAFF_DATA = {
         "information": [
             "Experienced faculty member.",
             "Motivates students to learn.",
-            "Improves knowledge and confidence."
-        ]
+            "Improves knowledge and confidence.",
+        ],
     },
 
     "Amala": {
-        "role": "Faculty",
-        "subjects": ["Accounts"],
-        "keywords": ["accounts"],
+        "role": "College Anchor & Faculty",
+        "subjects": [
+            "Accounts",
+        ],
+        "keywords": [
+            "accounts",
+            "accounting",
+        ],
         "information": [
             "College anchor.",
             "Teaches Accounts.",
-            "Explains concepts clearly."
-        ]
+            "Explains concepts clearly.",
+        ],
     },
 
     "Valli": {
-        "role": "Faculty",
-        "subjects": ["Programming Languages"],
+        "role": "Programming Faculty",
+        "subjects": [
+            "Programming Languages",
+        ],
         "keywords": [
             "programming",
             "coding",
-            "computer programming"
+            "code",
+            "computer programming",
         ],
         "information": [
             "Teaches programming languages.",
             "Develops coding skills.",
-            "Encourages practical learning."
-        ]
+            "Encourages practical learning.",
+        ],
     },
 
     "Pawan": {
         "role": "Professional Skills Trainer",
-        "subjects": ["Professional Skills"],
+        "subjects": [
+            "Professional Skills",
+        ],
         "keywords": [
             "professional skills",
             "personal skills",
-            "leadership"
+            "leadership",
         ],
         "information": [
             "Professional skills trainer.",
             "Develops personal skills.",
-            "Builds confidence and leadership."
-        ]
+            "Builds confidence and leadership.",
+        ],
     },
 
     "Yoga Sri": {
-        "role": "Faculty",
-        "subjects": ["Communication Skills"],
+        "role": "Communication Skills Faculty",
+        "subjects": [
+            "Communication Skills",
+        ],
         "keywords": [
             "communication",
-            "speaking"
+            "speaking",
+            "communication skills",
         ],
         "information": [
             "Guides students.",
             "Improves communication skills.",
-            "Motivates confident speaking."
-        ]
+            "Motivates confident speaking.",
+        ],
     },
 
     "Surya": {
         "role": "Computer Faculty",
-        "subjects": ["Computer Subjects"],
+        "subjects": [
+            "Computer Subjects",
+        ],
         "keywords": [
             "computer",
             "computers",
-            "technical"
+            "technical",
+            "computer subjects",
         ],
         "information": [
             "Expert in computer subjects.",
             "Explains technical concepts.",
-            "Improves practical knowledge."
-        ]
+            "Improves practical knowledge.",
+        ],
     },
 
     "Nagendramma": {
         "role": "English Faculty",
-        "subjects": ["English"],
-        "keywords": ["english"],
+        "subjects": [
+            "English",
+        ],
+        "keywords": [
+            "english",
+        ],
         "information": [
             "English faculty.",
             "Makes classes interesting.",
-            "Improves communication skills."
-        ]
+            "Improves communication skills.",
+        ],
     },
 
     "Jagadish": {
         "role": "Telugu Faculty",
-        "subjects": ["Telugu"],
-        "keywords": ["telugu"],
+        "subjects": [
+            "Telugu",
+        ],
+        "keywords": [
+            "telugu",
+        ],
         "information": [
             "Telugu faculty.",
             "Explains lessons clearly.",
-            "Encourages language learning."
-        ]
+            "Encourages language learning.",
+        ],
     },
 
     "Emmanuel": {
-        "role": "Faculty",
-        "subjects": ["Reasoning", "Arithmetic"],
+        "role": "Reasoning & Arithmetic Faculty",
+        "subjects": [
+            "Reasoning",
+            "Arithmetic",
+        ],
         "keywords": [
             "reasoning",
-            "arithmetic"
+            "arithmetic",
+            "aptitude",
         ],
         "information": [
             "Teaches Reasoning and Arithmetic.",
             "Motivates students.",
             "Inspires future success.",
-            "Future police officer."
-        ]
+            "Future police officer.",
+        ],
     },
 
     "Prasanna": {
         "role": "Mathematics Faculty",
-        "subjects": ["Mathematics"],
+        "subjects": [
+            "Mathematics",
+        ],
         "keywords": [
             "math",
             "maths",
-            "mathematics"
+            "mathematics",
         ],
         "information": [
             "Mathematics faculty.",
             "Explains concepts simply.",
-            "Supports students in learning."
-        ]
-    }
+            "Supports students in learning.",
+        ],
+    },
 }
 
 
 # ============================================================
-# BASIC FUNCTIONS
+# SUBJECT ALIASES
 # ============================================================
 
-def get_staff_names():
-    """Return all staff names."""
+SUBJECT_ALIASES = {
+    "math": "Mathematics",
+    "maths": "Mathematics",
+    "mathematics": "Mathematics",
+
+    "english": "English",
+
+    "telugu": "Telugu",
+
+    "account": "Accounts",
+    "accounts": "Accounts",
+    "accounting": "Accounts",
+
+    "programming": "Programming Languages",
+    "programming language": "Programming Languages",
+    "programming languages": "Programming Languages",
+    "coding": "Programming Languages",
+    "code": "Programming Languages",
+
+    "computer": "Computer Subjects",
+    "computers": "Computer Subjects",
+    "computer subject": "Computer Subjects",
+    "computer subjects": "Computer Subjects",
+    "technical": "Computer Subjects",
+
+    "reasoning": "Reasoning",
+    "arithmetic": "Arithmetic",
+    "aptitude": "Reasoning",
+
+    "communication": "Communication Skills",
+    "communication skill": "Communication Skills",
+    "communication skills": "Communication Skills",
+    "speaking": "Communication Skills",
+
+    "professional skill": "Professional Skills",
+    "professional skills": "Professional Skills",
+    "personal skills": "Professional Skills",
+    "leadership": "Professional Skills",
+}
+
+
+# ============================================================
+# TEXT PROCESSING
+# ============================================================
+
+def normalize(text: str) -> str:
+    """
+    Convert text into a clean form for understanding questions.
+    """
+
+    if not text:
+        return ""
+
+    text = text.lower().strip()
+
+    # Common informal spellings.
+    replacements = {
+        "techer": "teacher",
+        "teachr": "teacher",
+        "tacher": "teacher",
+        "facutly": "faculty",
+        "maths": "maths",
+        "helo": "hello",
+        "hii": "hi",
+        "hai": "hi",
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    text = re.sub(r"[^\w\s]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+
+    return text.strip()
+
+
+def get_staff_names() -> List[str]:
     return list(STAFF_DATA.keys())
 
 
-def get_staff_count():
-    """Return total number of staff members."""
+def get_staff_count() -> int:
     return len(STAFF_DATA)
 
 
-def get_staff_info(name):
-    """Return information about a staff member."""
-    if name not in STAFF_DATA:
-        return []
+# ============================================================
+# STAFF FINDING
+# ============================================================
 
-    return STAFF_DATA[name]["information"]
+def find_staff(text: str) -> Optional[str]:
+    """
+    Find a staff member using exact matching, partial matching,
+    or basic fuzzy matching.
+    """
 
+    normalized = normalize(text)
 
-def find_staff(user_input):
-    """Find a staff member mentioned in a question."""
-
-    if not user_input:
-        return None
-
-    text = user_input.lower().strip()
-
-    # Longest names first
-    names = sorted(
+    # Exact/substring match.
+    for name in sorted(
         STAFF_DATA.keys(),
         key=len,
         reverse=True
-    )
-
-    for name in names:
-
-        if name.lower() in text:
+    ):
+        if normalize(name) in normalized:
             return name
+
+    # Fuzzy match individual words.
+    words = normalized.split()
+
+    for name in STAFF_DATA:
+
+        name_words = normalize(name).split()
+
+        for name_word in name_words:
+
+            matches = difflib.get_close_matches(
+                name_word,
+                words,
+                n=1,
+                cutoff=0.78,
+            )
+
+            if matches:
+                return name
 
     return None
 
 
 # ============================================================
-# STAFF PROFILE
+# SUBJECT FINDING
 # ============================================================
 
-def get_staff_profile(name):
+def find_subject(text: str) -> Optional[str]:
+    """
+    Identify a subject from ordinary language.
+    """
 
-    if name not in STAFF_DATA:
-        return None
+    normalized = normalize(text)
 
-    return STAFF_DATA[name]
+    # Longest aliases first.
+    aliases = sorted(
+        SUBJECT_ALIASES.keys(),
+        key=len,
+        reverse=True,
+    )
+
+    for alias in aliases:
+
+        pattern = rf"\b{re.escape(alias)}\b"
+
+        if re.search(pattern, normalized):
+            return SUBJECT_ALIASES[alias]
+
+    return None
 
 
-# ============================================================
-# SUBJECT SEARCH
-# ============================================================
+def find_staff_by_subject(
+    subject: str
+) -> List[str]:
 
-def find_staff_by_subject(user_input):
-
-    if not user_input:
-        return []
-
-    text = user_input.lower()
-
-    matches = []
+    results = []
 
     for name, data in STAFF_DATA.items():
 
-        # Check subject names
-        for subject in data["subjects"]:
+        if subject in data["subjects"]:
+            results.append(name)
 
-            if subject.lower() in text:
-
-                matches.append(name)
-                break
-
-        # Check alternative keywords
-        if name not in matches:
-
-            for keyword in data["keywords"]:
-
-                if keyword.lower() in text:
-
-                    matches.append(name)
-                    break
-
-    return matches
+    return results
 
 
 # ============================================================
-# FORMAT STAFF INFORMATION
+# INTENT DETECTION
 # ============================================================
 
-def format_staff_info(name):
+def is_greeting(text: str) -> bool:
 
-    if name not in STAFF_DATA:
-        return None
+    normalized = normalize(text)
+
+    greetings = {
+        "hi",
+        "hello",
+        "hey",
+        "hi there",
+        "hello there",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "howdy",
+    }
+
+    return normalized in greetings
+
+
+def is_thanks(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return any(
+        phrase in normalized
+        for phrase in [
+            "thank you",
+            "thanks",
+            "thank u",
+            "thx",
+        ]
+    )
+
+
+def is_help(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return (
+        normalized == "help"
+        or "what can you do" in normalized
+        or "what can i ask" in normalized
+        or "how can you help" in normalized
+    )
+
+
+def is_count_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    count_words = [
+        "how many",
+        "number of",
+        "total",
+        "count",
+    ]
+
+    staff_words = [
+        "teacher",
+        "teachers",
+        "staff",
+        "faculty",
+        "members",
+        "professors",
+    ]
+
+    return (
+        any(word in normalized for word in count_words)
+        and any(word in normalized for word in staff_words)
+    )
+
+
+def is_staff_list_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    list_words = [
+        "list",
+        "show",
+        "names",
+        "who are",
+        "give me all",
+        "all teachers",
+        "all staff",
+        "all faculty",
+    ]
+
+    return any(
+        phrase in normalized
+        for phrase in list_words
+    )
+
+
+def is_founder_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return any(
+        phrase in normalized
+        for phrase in [
+            "founder",
+            "who founded",
+            "who started the college",
+            "who started college",
+            "college founder",
+        ]
+    )
+
+
+def is_subject_teacher_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return any(
+        phrase in normalized
+        for phrase in [
+            "who teaches",
+            "who teach",
+            "who handles",
+            "who takes",
+            "who is teaching",
+            "teacher for",
+            "faculty for",
+            "which teacher",
+            "which faculty",
+        ]
+    )
+
+
+def is_subject_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return any(
+        phrase in normalized
+        for phrase in [
+            "what does",
+            "what do",
+            "what subject",
+            "what subjects",
+            "teach",
+            "teaches",
+        ]
+    )
+
+
+def is_role_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return any(
+        phrase in normalized
+        for phrase in [
+            "role",
+            "position",
+            "designation",
+            "job",
+        ]
+    )
+
+
+def is_subject_list_question(text: str) -> bool:
+
+    normalized = normalize(text)
+
+    return any(
+        phrase in normalized
+        for phrase in [
+            "what subjects",
+            "which subjects",
+            "subjects are taught",
+            "what is taught",
+            "what are taught",
+        ]
+    )
+
+
+# ============================================================
+# RESPONSE FORMATTERS
+# ============================================================
+
+def format_staff_profile(name: str) -> str:
 
     data = STAFF_DATA[name]
 
-    response = f"### 👤 {name}\n\n"
+    response = f"### {name}\n\n"
 
-    response += f"**Role:** {data['role']}\n\n"
+    response += (
+        f"**Role:** {data['role']}\n\n"
+    )
 
     if data["subjects"]:
 
-        response += "**Subjects / Areas:** "
-
-        response += ", ".join(data["subjects"])
-
-        response += "\n\n"
+        response += (
+            "**Subjects:** "
+            + ", ".join(data["subjects"])
+            + "\n\n"
+        )
 
     response += "**About:**\n\n"
 
@@ -300,17 +601,13 @@ def format_staff_info(name):
     return response
 
 
-# ============================================================
-# LIST STAFF
-# ============================================================
+def format_staff_list() -> str:
 
-def list_all_staff():
-
-    response = "### 👥 Staff at S V L COLLEGE\n\n"
+    response = "### S V L COLLEGE Staff\n\n"
 
     for index, (name, data) in enumerate(
         STAFF_DATA.items(),
-        start=1
+        start=1,
     ):
 
         response += (
@@ -321,11 +618,7 @@ def list_all_staff():
     return response
 
 
-# ============================================================
-# SUBJECT LIST
-# ============================================================
-
-def list_subjects():
+def format_subject_list() -> str:
 
     subjects = []
 
@@ -336,180 +629,118 @@ def list_subjects():
             if subject not in subjects:
                 subjects.append(subject)
 
-    response = "### 📚 Subjects / Areas\n\n"
+    response = "### Subjects & Areas\n\n"
 
     for subject in subjects:
 
-        response += f"- {subject}\n"
+        response += f"- **{subject}**\n"
 
     return response
 
 
-# ============================================================
-# COUNT QUESTIONS
-# ============================================================
+def format_subject_teacher(
+    subject: str
+) -> str:
 
-def is_count_question(text):
+    teachers = find_staff_by_subject(subject)
 
-    patterns = [
-        r"\bhow many\b",
-        r"\bhow much\b",
-        r"\bnumber of\b",
-        r"\btotal\b",
-        r"\bcount\b"
-    ]
+    if not teachers:
 
-    return any(
-        re.search(pattern, text)
-        for pattern in patterns
+        return (
+            f"I couldn't find a faculty member specifically "
+            f"listed for **{subject}** in my current "
+            f"{COLLEGE_NAME} information."
+        )
+
+    if len(teachers) == 1:
+
+        return (
+            f"**{teachers[0]}** teaches "
+            f"**{subject}** at **{COLLEGE_NAME}**."
+        )
+
+    names = ", ".join(
+        f"**{name}**"
+        for name in teachers
+    )
+
+    return (
+        f"The faculty listed for **{subject}** are: "
+        f"{names}."
+    )
+
+
+def help_response() -> str:
+
+    return (
+        "### How can I help?\n\n"
+        f"I'm the **{COLLEGE_NAME} Assistant**. "
+        "I can answer questions using the college "
+        "information available to me.\n\n"
+        "**Try asking:**\n\n"
+        "- How many teachers are there?\n"
+        "- Who are the staff members?\n"
+        "- Who teaches maths?\n"
+        "- Who teaches coding?\n"
+        "- What does Valli teach?\n"
+        "- Tell me about Emmanuel.\n"
+        "- Who is the founder?\n"
+        "- What subjects are taught?\n"
     )
 
 
 # ============================================================
-# LIST QUESTIONS
+# FOLLOW-UP CONTEXT
 # ============================================================
 
-def is_list_question(text):
+def get_previous_staff(
+    conversation: Optional[List[Dict]]
+) -> Optional[str]:
 
-    patterns = [
-        "list",
-        "show",
-        "names",
-        "who are",
-        "give me all",
-        "all teachers",
-        "all staff",
-        "all faculty"
-    ]
+    if not conversation:
+        return None
 
-    return any(
-        phrase in text
-        for phrase in patterns
-    )
+    for message in reversed(conversation):
 
+        if message.get("role") != "user":
+            continue
 
-# ============================================================
-# FOUNDER QUESTIONS
-# ============================================================
+        content = message.get(
+            "content",
+            "",
+        )
 
-def is_founder_question(text):
+        staff = find_staff(content)
 
-    patterns = [
-        "founder",
-        "who founded",
-        "college founder",
-        "who started the college",
-        "who is the founder"
-    ]
+        if staff:
+            return staff
 
-    return any(
-        phrase in text
-        for phrase in patterns
-    )
+    return None
 
 
 # ============================================================
-# SUBJECT QUESTION
+# MAIN RESPONSE ENGINE
 # ============================================================
 
-def is_subject_question(text):
+def generate_response(
+    user_input: str,
+    conversation: Optional[List[Dict]] = None,
+) -> str:
+    """
+    Main chatbot function.
 
-    patterns = [
-        "who teaches",
-        "who teach",
-        "who handles",
-        "who takes",
-        "who is teaching",
-        "teacher for",
-        "faculty for",
-        "who teaches"
-    ]
+    This function is intentionally local and deterministic:
+    it answers from the S V L COLLEGE knowledge base instead
+    of inventing information.
+    """
 
-    return any(
-        phrase in text
-        for phrase in patterns
-    )
+    if not user_input or not user_input.strip():
 
+        return (
+            "Please type a question and I'll help."
+        )
 
-# ============================================================
-# GREETING
-# ============================================================
-
-def is_greeting(text):
-
-    greetings = [
-        "hi",
-        "hello",
-        "hey",
-        "hai",
-        "good morning",
-        "good afternoon",
-        "good evening"
-    ]
-
-    return text in greetings
-
-
-# ============================================================
-# THANK YOU
-# ============================================================
-
-def is_thanks(text):
-
-    phrases = [
-        "thank you",
-        "thanks",
-        "thank u",
-        "thx"
-    ]
-
-    return any(
-        phrase in text
-        for phrase in phrases
-    )
-
-
-# ============================================================
-# HELP
-# ============================================================
-
-def help_response():
-
-    return """
-### 💡 How I can help
-
-I'm the **S V L COLLEGE Assistant**.
-
-You can ask me things like:
-
-- **How many teachers are there?**
-- **Who are the staff members?**
-- **Who teaches Mathematics?**
-- **Who teaches English?**
-- **Who teaches Accounts?**
-- **Who teaches programming?**
-- **Who teaches Reasoning?**
-- **Who is the founder?**
-- **Tell me about Valli.**
-- **What does Emmanuel teach?**
-- **What subjects are taught?**
-
-Just ask naturally. 😊
-"""
-
-
-# ============================================================
-# MAIN CHATBOT ENGINE
-# ============================================================
-
-def generate_response(user_input):
-
-    if not user_input:
-        return "Please type a question."
-
-
-    text = user_input.lower().strip()
-
+    text = normalize(user_input)
 
     # --------------------------------------------------------
     # Greeting
@@ -518,11 +749,10 @@ def generate_response(user_input):
     if is_greeting(text):
 
         return (
-            "Hello! 👋\n\n"
-            "I'm the **S V L COLLEGE Assistant**.\n\n"
-            "How can I help you?"
+            f"Hello! 👋\n\n"
+            f"I'm the **{COLLEGE_NAME} Assistant**. "
+            "What would you like to know?"
         )
-
 
     # --------------------------------------------------------
     # Thanks
@@ -532,23 +762,17 @@ def generate_response(user_input):
 
         return (
             "You're welcome! 😊\n\n"
-            "Feel free to ask me anything about "
-            "S V L COLLEGE."
+            f"Feel free to ask me anything about "
+            f"**{COLLEGE_NAME}**."
         )
-
 
     # --------------------------------------------------------
     # Help
     # --------------------------------------------------------
 
-    if (
-        text == "help"
-        or "what can you do" in text
-        or "how can you help" in text
-    ):
+    if is_help(text):
 
         return help_response()
-
 
     # --------------------------------------------------------
     # Staff count
@@ -556,56 +780,28 @@ def generate_response(user_input):
 
     if is_count_question(text):
 
-        # Teacher / faculty / staff count
-        if any(word in text for word in [
-            "teacher",
-            "teachers",
-            "staff",
-            "faculty",
-            "people",
-            "members"
-        ]):
+        count = get_staff_count()
 
-            count = get_staff_count()
-
-            return (
-                "### 👥 Staff Count\n\n"
-                f"There are **{count} staff members** "
-                "in the current S V L COLLEGE staff list."
-            )
-
+        return (
+            f"There are **{count} staff members** "
+            f"in the current **{COLLEGE_NAME}** staff list."
+        )
 
     # --------------------------------------------------------
-    # List staff
+    # Staff list
     # --------------------------------------------------------
 
-    if is_list_question(text):
+    if is_staff_list_question(text):
 
-        if any(word in text for word in [
-            "staff",
-            "teacher",
-            "teachers",
-            "faculty",
-            "members",
-            "people"
-        ]):
-
-            return list_all_staff()
-
+        return format_staff_list()
 
     # --------------------------------------------------------
-    # List subjects
+    # Subject list
     # --------------------------------------------------------
 
-    if (
-        "subjects" in text
-        or "what is taught" in text
-        or "what are taught" in text
-        or "what do they teach" in text
-    ):
+    if is_subject_list_question(text):
 
-        return list_subjects()
-
+        return format_subject_list()
 
     # --------------------------------------------------------
     # Founder
@@ -613,83 +809,133 @@ def generate_response(user_input):
 
     if is_founder_question(text):
 
-        return format_staff_info(
+        return format_staff_profile(
             "Uma Maheshwara Rao"
         )
-
 
     # --------------------------------------------------------
     # Specific staff member
     # --------------------------------------------------------
 
-    staff_name = find_staff(user_input)
+    staff = find_staff(text)
 
-    if staff_name:
+    if staff:
 
-        return format_staff_info(staff_name)
+        data = STAFF_DATA[staff]
 
+        # Subject/teaching question.
+        if is_subject_question(text):
 
-    # --------------------------------------------------------
-    # Subject question
-    # --------------------------------------------------------
-
-    if is_subject_question(text):
-
-        matches = find_staff_by_subject(
-            user_input
-        )
-
-        if matches:
-
-            response = "### 📚 Faculty\n\n"
-
-            for name in matches:
-
-                data = STAFF_DATA[name]
+            if data["subjects"]:
 
                 subjects = ", ".join(
-                    data["subjects"]
+                    f"**{subject}**"
+                    for subject in data["subjects"]
                 )
 
-                response += (
-                    f"**{name}** — "
-                    f"{subjects}\n\n"
+                return (
+                    f"**{staff}** teaches "
+                    f"{subjects}."
                 )
 
-            return response
+            return (
+                f"The current college information does not "
+                f"specify a subject taught by **{staff}**."
+            )
 
+        # Role question.
+        if is_role_question(text):
+
+            return (
+                f"**{staff}** is a "
+                f"**{data['role']}** at "
+                f"**{COLLEGE_NAME}**."
+            )
+
+        # General profile.
+        return format_staff_profile(staff)
 
     # --------------------------------------------------------
-    # Subject keyword without "who teaches"
+    # Subject → Teacher
     # --------------------------------------------------------
 
-    matches = find_staff_by_subject(
-        user_input
+    subject = find_subject(text)
+
+    if subject:
+
+        if (
+            is_subject_teacher_question(text)
+            or "teacher" in text
+            or "faculty" in text
+            or "teaches" in text
+            or "teach" in text
+        ):
+
+            return format_subject_teacher(
+                subject
+            )
+
+    # --------------------------------------------------------
+    # Follow-up questions
+    # --------------------------------------------------------
+
+    previous_staff = get_previous_staff(
+        conversation
     )
 
-    if matches:
+    if previous_staff:
 
-        response = "### 📚 Related Faculty\n\n"
+        follow_up_words = [
+            "he",
+            "him",
+            "his",
+            "she",
+            "her",
+            "that teacher",
+            "this teacher",
+            "that faculty",
+            "this faculty",
+        ]
 
-        for name in matches:
+        if any(
+            word in text
+            for word in follow_up_words
+        ):
 
-            response += f"- **{name}**\n"
-
-        return response
-
+            return format_staff_profile(
+                previous_staff
+            )
 
     # --------------------------------------------------------
-    # Default
+    # General college question
+    # --------------------------------------------------------
+
+    if "college" in text:
+
+        return (
+            f"I can help with the information currently "
+            f"available about **{COLLEGE_NAME}**, especially "
+            "staff members, subjects, roles, and faculty "
+            "information.\n\n"
+            "Try asking:\n"
+            "- How many teachers are there?\n"
+            "- Who teaches Mathematics?\n"
+            "- Who is Valli?\n"
+            "- Who is the founder?"
+        )
+
+    # --------------------------------------------------------
+    # Unknown question
     # --------------------------------------------------------
 
     return (
-        "I'm not sure about that yet. 🤔\n\n"
-        "I can answer questions about the staff, "
-        "subjects, roles, and founder of "
-        "**S V L COLLEGE**.\n\n"
-        "Try asking:\n"
-        "- How many teachers are there?\n"
-        "- Who teaches Mathematics?\n"
-        "- Who is the founder?\n"
-        "- Tell me about Valli."
+        "I don't have enough information to answer that "
+        "accurately from my current college knowledge base.\n\n"
+        f"I can help with **{COLLEGE_NAME} staff, subjects, "
+        "faculty roles, the founder, and other information "
+        "contained in my knowledge base**.\n\n"
+        "For example, try:\n"
+        "- **How many teachers are there?**\n"
+        "- **Who teaches maths?**\n"
+        "- **Tell me about Valli.**"
     )
