@@ -1,941 +1,694 @@
 # ============================================================
 # S V L COLLEGE
-# Premium College AI Assistant - Chat Engine
+# College AI Assistant
+# ChatGPT-Style Responsive Interface
 # ============================================================
 
-import re
-import difflib
-from typing import Optional, List, Dict
+import streamlit as st
 
-
-# ============================================================
-# COLLEGE
-# ============================================================
-
-COLLEGE_NAME = "S V L COLLEGE"
+from chatbot import (
+    COLLEGE_NAME,
+    get_staff_names,
+    generate_response,
+)
 
 
 # ============================================================
-# COLLEGE KNOWLEDGE BASE
+# PAGE CONFIGURATION
 # ============================================================
 
-STAFF_DATA = {
-    "Uma Maheshwara Rao": {
-        "role": "Founder",
-        "subjects": [],
-        "keywords": [
-            "founder",
-            "college founder",
-            "started college",
-            "founder of college",
-        ],
-        "information": [
-            "Founder of our college.",
-            "Guides and inspires students.",
-            "Encourages a bright future.",
-        ],
-    },
-
-    "Durga Prasad": {
-        "role": "Faculty",
-        "subjects": [],
-        "keywords": [
-            "degree students",
-            "degree",
-            "academics",
-        ],
-        "information": [
-            "In-charge of degree students.",
-            "Guides students in academics.",
-            "A supportive well-wisher.",
-        ],
-    },
-
-    "Suresh": {
-        "role": "Faculty",
-        "subjects": [],
-        "keywords": [],
-        "information": [
-            "Experienced faculty member.",
-            "Motivates students to learn.",
-            "Improves knowledge and confidence.",
-        ],
-    },
-
-    "Amala": {
-        "role": "College Anchor & Faculty",
-        "subjects": [
-            "Accounts",
-        ],
-        "keywords": [
-            "accounts",
-            "accounting",
-        ],
-        "information": [
-            "College anchor.",
-            "Teaches Accounts.",
-            "Explains concepts clearly.",
-        ],
-    },
-
-    "Valli": {
-        "role": "Programming Faculty",
-        "subjects": [
-            "Programming Languages",
-        ],
-        "keywords": [
-            "programming",
-            "coding",
-            "code",
-            "computer programming",
-        ],
-        "information": [
-            "Teaches programming languages.",
-            "Develops coding skills.",
-            "Encourages practical learning.",
-        ],
-    },
-
-    "Pawan": {
-        "role": "Professional Skills Trainer",
-        "subjects": [
-            "Professional Skills",
-        ],
-        "keywords": [
-            "professional skills",
-            "personal skills",
-            "leadership",
-        ],
-        "information": [
-            "Professional skills trainer.",
-            "Develops personal skills.",
-            "Builds confidence and leadership.",
-        ],
-    },
-
-    "Yoga Sri": {
-        "role": "Communication Skills Faculty",
-        "subjects": [
-            "Communication Skills",
-        ],
-        "keywords": [
-            "communication",
-            "speaking",
-            "communication skills",
-        ],
-        "information": [
-            "Guides students.",
-            "Improves communication skills.",
-            "Motivates confident speaking.",
-        ],
-    },
-
-    "Surya": {
-        "role": "Computer Faculty",
-        "subjects": [
-            "Computer Subjects",
-        ],
-        "keywords": [
-            "computer",
-            "computers",
-            "technical",
-            "computer subjects",
-        ],
-        "information": [
-            "Expert in computer subjects.",
-            "Explains technical concepts.",
-            "Improves practical knowledge.",
-        ],
-    },
-
-    "Nagendramma": {
-        "role": "English Faculty",
-        "subjects": [
-            "English",
-        ],
-        "keywords": [
-            "english",
-        ],
-        "information": [
-            "English faculty.",
-            "Makes classes interesting.",
-            "Improves communication skills.",
-        ],
-    },
-
-    "Jagadish": {
-        "role": "Telugu Faculty",
-        "subjects": [
-            "Telugu",
-        ],
-        "keywords": [
-            "telugu",
-        ],
-        "information": [
-            "Telugu faculty.",
-            "Explains lessons clearly.",
-            "Encourages language learning.",
-        ],
-    },
-
-    "Emmanuel": {
-        "role": "Reasoning & Arithmetic Faculty",
-        "subjects": [
-            "Reasoning",
-            "Arithmetic",
-        ],
-        "keywords": [
-            "reasoning",
-            "arithmetic",
-            "aptitude",
-        ],
-        "information": [
-            "Teaches Reasoning and Arithmetic.",
-            "Motivates students.",
-            "Inspires future success.",
-            "Future police officer.",
-        ],
-    },
-
-    "Prasanna": {
-        "role": "Mathematics Faculty",
-        "subjects": [
-            "Mathematics",
-        ],
-        "keywords": [
-            "math",
-            "maths",
-            "mathematics",
-        ],
-        "information": [
-            "Mathematics faculty.",
-            "Explains concepts simply.",
-            "Supports students in learning.",
-        ],
-    },
-}
+st.set_page_config(
+    page_title="S V L COLLEGE | AI Assistant",
+    page_icon="💬",
+    layout="wide",
+    initial_sidebar_state="auto",
+)
 
 
 # ============================================================
-# SUBJECT ALIASES
+# SESSION STATE
 # ============================================================
 
-SUBJECT_ALIASES = {
-    "math": "Mathematics",
-    "maths": "Mathematics",
-    "mathematics": "Mathematics",
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    "english": "English",
-
-    "telugu": "Telugu",
-
-    "account": "Accounts",
-    "accounts": "Accounts",
-    "accounting": "Accounts",
-
-    "programming": "Programming Languages",
-    "programming language": "Programming Languages",
-    "programming languages": "Programming Languages",
-    "coding": "Programming Languages",
-    "code": "Programming Languages",
-
-    "computer": "Computer Subjects",
-    "computers": "Computer Subjects",
-    "computer subject": "Computer Subjects",
-    "computer subjects": "Computer Subjects",
-    "technical": "Computer Subjects",
-
-    "reasoning": "Reasoning",
-    "arithmetic": "Arithmetic",
-    "aptitude": "Reasoning",
-
-    "communication": "Communication Skills",
-    "communication skill": "Communication Skills",
-    "communication skills": "Communication Skills",
-    "speaking": "Communication Skills",
-
-    "professional skill": "Professional Skills",
-    "professional skills": "Professional Skills",
-    "personal skills": "Professional Skills",
-    "leadership": "Professional Skills",
-}
+if "chat_title" not in st.session_state:
+    st.session_state.chat_title = "New chat"
 
 
 # ============================================================
-# TEXT PROCESSING
+# CUSTOM CSS
+# ============================================================
+#
+# IMPORTANT:
+# This is ONLY styling.
+# There is no visible HTML UI inside the application.
+#
 # ============================================================
 
-def normalize(text: str) -> str:
+st.markdown(
     """
-    Convert text into a clean form for understanding questions.
-    """
+    <style>
 
-    if not text:
-        return ""
+    /* ======================================================
+       MAIN APPLICATION
+       ====================================================== */
 
-    text = text.lower().strip()
-
-    # Common informal spellings.
-    replacements = {
-        "techer": "teacher",
-        "teachr": "teacher",
-        "tacher": "teacher",
-        "facutly": "faculty",
-        "maths": "maths",
-        "helo": "hello",
-        "hii": "hi",
-        "hai": "hi",
+    .stApp {
+        background-color: var(--background-color);
+        color: var(--text-color);
     }
 
-    for old, new in replacements.items():
-        text = text.replace(old, new)
 
-    text = re.sub(r"[^\w\s]", " ", text)
-    text = re.sub(r"\s+", " ", text)
+    /* ======================================================
+       CONTENT WIDTH
+       ====================================================== */
 
-    return text.strip()
-
-
-def get_staff_names() -> List[str]:
-    return list(STAFF_DATA.keys())
-
-
-def get_staff_count() -> int:
-    return len(STAFF_DATA)
-
-
-# ============================================================
-# STAFF FINDING
-# ============================================================
-
-def find_staff(text: str) -> Optional[str]:
-    """
-    Find a staff member using exact matching, partial matching,
-    or basic fuzzy matching.
-    """
-
-    normalized = normalize(text)
-
-    # Exact/substring match.
-    for name in sorted(
-        STAFF_DATA.keys(),
-        key=len,
-        reverse=True
-    ):
-        if normalize(name) in normalized:
-            return name
-
-    # Fuzzy match individual words.
-    words = normalized.split()
-
-    for name in STAFF_DATA:
-
-        name_words = normalize(name).split()
-
-        for name_word in name_words:
-
-            matches = difflib.get_close_matches(
-                name_word,
-                words,
-                n=1,
-                cutoff=0.78,
-            )
-
-            if matches:
-                return name
-
-    return None
-
-
-# ============================================================
-# SUBJECT FINDING
-# ============================================================
-
-def find_subject(text: str) -> Optional[str]:
-    """
-    Identify a subject from ordinary language.
-    """
-
-    normalized = normalize(text)
-
-    # Longest aliases first.
-    aliases = sorted(
-        SUBJECT_ALIASES.keys(),
-        key=len,
-        reverse=True,
-    )
-
-    for alias in aliases:
-
-        pattern = rf"\b{re.escape(alias)}\b"
-
-        if re.search(pattern, normalized):
-            return SUBJECT_ALIASES[alias]
-
-    return None
-
-
-def find_staff_by_subject(
-    subject: str
-) -> List[str]:
-
-    results = []
-
-    for name, data in STAFF_DATA.items():
-
-        if subject in data["subjects"]:
-            results.append(name)
-
-    return results
-
-
-# ============================================================
-# INTENT DETECTION
-# ============================================================
-
-def is_greeting(text: str) -> bool:
-
-    normalized = normalize(text)
-
-    greetings = {
-        "hi",
-        "hello",
-        "hey",
-        "hi there",
-        "hello there",
-        "good morning",
-        "good afternoon",
-        "good evening",
-        "howdy",
+    .block-container {
+        max-width: 900px;
+        margin: auto;
+        padding-top: 1rem;
+        padding-bottom: 7rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
-    return normalized in greetings
+
+    /* ======================================================
+       SIDEBAR
+       ====================================================== */
+
+    section[data-testid="stSidebar"] {
+        border-right: 1px solid rgba(128, 128, 128, 0.18);
+    }
+
+    section[data-testid="stSidebar"] > div {
+        padding-top: 1.5rem;
+    }
+
+    section[data-testid="stSidebar"] .stButton button {
+        width: 100%;
+        text-align: left;
+        border-radius: 9px;
+        border: 1px solid transparent;
+        background: transparent;
+        min-height: 42px;
+        transition: 0.15s ease;
+    }
+
+    section[data-testid="stSidebar"] .stButton button:hover {
+        background: rgba(128, 128, 128, 0.12);
+        border-color: rgba(128, 128, 128, 0.20);
+    }
 
 
-def is_thanks(text: str) -> bool:
+    /* ======================================================
+       SIDEBAR TITLE
+       ====================================================== */
 
-    normalized = normalize(text)
-
-    return any(
-        phrase in normalized
-        for phrase in [
-            "thank you",
-            "thanks",
-            "thank u",
-            "thx",
-        ]
-    )
+    section[data-testid="stSidebar"] h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.15rem;
+    }
 
 
-def is_help(text: str) -> bool:
+    /* ======================================================
+       CHAT HEADER
+       ====================================================== */
 
-    normalized = normalize(text)
-
-    return (
-        normalized == "help"
-        or "what can you do" in normalized
-        or "what can i ask" in normalized
-        or "how can you help" in normalized
-    )
-
-
-def is_count_question(text: str) -> bool:
-
-    normalized = normalize(text)
-
-    count_words = [
-        "how many",
-        "number of",
-        "total",
-        "count",
-    ]
-
-    staff_words = [
-        "teacher",
-        "teachers",
-        "staff",
-        "faculty",
-        "members",
-        "professors",
-    ]
-
-    return (
-        any(word in normalized for word in count_words)
-        and any(word in normalized for word in staff_words)
-    )
+    .chat-header {
+        text-align: center;
+        padding-top: 0.5rem;
+        padding-bottom: 1rem;
+    }
 
 
-def is_staff_list_question(text: str) -> bool:
+    /* ======================================================
+       WELCOME SCREEN
+       ====================================================== */
 
-    normalized = normalize(text)
-
-    list_words = [
-        "list",
-        "show",
-        "names",
-        "who are",
-        "give me all",
-        "all teachers",
-        "all staff",
-        "all faculty",
-    ]
-
-    return any(
-        phrase in normalized
-        for phrase in list_words
-    )
+    .welcome-space {
+        min-height: 28vh;
+    }
 
 
-def is_founder_question(text: str) -> bool:
+    /* ======================================================
+       WELCOME TITLE
+       ====================================================== */
 
-    normalized = normalize(text)
-
-    return any(
-        phrase in normalized
-        for phrase in [
-            "founder",
-            "who founded",
-            "who started the college",
-            "who started college",
-            "college founder",
-        ]
-    )
+    .welcome-title {
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: 650;
+        letter-spacing: -0.8px;
+        margin-top: 1rem;
+        margin-bottom: 0.25rem;
+    }
 
 
-def is_subject_teacher_question(text: str) -> bool:
-
-    normalized = normalize(text)
-
-    return any(
-        phrase in normalized
-        for phrase in [
-            "who teaches",
-            "who teach",
-            "who handles",
-            "who takes",
-            "who is teaching",
-            "teacher for",
-            "faculty for",
-            "which teacher",
-            "which faculty",
-        ]
-    )
+    .welcome-subtitle {
+        text-align: center;
+        opacity: 0.62;
+        font-size: 1rem;
+        margin-bottom: 1.8rem;
+    }
 
 
-def is_subject_question(text: str) -> bool:
+    /* ======================================================
+       QUICK QUESTIONS
+       ====================================================== */
 
-    normalized = normalize(text)
-
-    return any(
-        phrase in normalized
-        for phrase in [
-            "what does",
-            "what do",
-            "what subject",
-            "what subjects",
-            "teach",
-            "teaches",
-        ]
-    )
+    .quick-title {
+        text-align: center;
+        opacity: 0.55;
+        font-size: 0.82rem;
+        margin-bottom: 0.5rem;
+    }
 
 
-def is_role_question(text: str) -> bool:
-
-    normalized = normalize(text)
-
-    return any(
-        phrase in normalized
-        for phrase in [
-            "role",
-            "position",
-            "designation",
-            "job",
-        ]
-    )
+    .quick-question button {
+        min-height: 48px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+    }
 
 
-def is_subject_list_question(text: str) -> bool:
+    /* ======================================================
+       CHAT MESSAGES
+       ====================================================== */
 
-    normalized = normalize(text)
+    [data-testid="stChatMessage"] {
+        padding-top: 0.65rem;
+        padding-bottom: 0.65rem;
+    }
 
-    return any(
-        phrase in normalized
-        for phrase in [
-            "what subjects",
-            "which subjects",
-            "subjects are taught",
-            "what is taught",
-            "what are taught",
-        ]
-    )
+
+    [data-testid="stChatMessageContent"] {
+        max-width: 760px;
+        overflow-wrap: anywhere;
+    }
+
+
+    [data-testid="stChatMessageContent"] p {
+        line-height: 1.65;
+    }
+
+
+    /* ======================================================
+       CHAT INPUT
+       ====================================================== */
+
+    [data-testid="stChatInput"] {
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+
+    [data-testid="stChatInput"] textarea {
+        border-radius: 15px !important;
+        min-height: 52px !important;
+        font-size: 15px !important;
+    }
+
+
+    /* ======================================================
+       FOOTER
+       ====================================================== */
+
+    .footer-text {
+        text-align: center;
+        opacity: 0.45;
+        font-size: 0.72rem;
+        margin-top: 1rem;
+    }
+
+
+    /* ======================================================
+       MOBILE
+       ====================================================== */
+
+    @media (max-width: 700px) {
+
+        .block-container {
+            max-width: 100%;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            padding-top: 0.5rem;
+            padding-bottom: 6rem;
+        }
+
+
+        .welcome-space {
+            min-height: 10vh;
+        }
+
+
+        .welcome-title {
+            font-size: 1.75rem;
+            letter-spacing: -0.5px;
+            margin-top: 1.5rem;
+        }
+
+
+        .welcome-subtitle {
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+
+        /*
+           Turn the two-column quick-question layout
+           into a single column on phones.
+        */
+
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+        }
+
+
+        [data-testid="column"] {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+
+        .quick-question button {
+            width: 100%;
+            min-height: 46px;
+            margin-bottom: 0.35rem;
+        }
+
+
+        [data-testid="stChatMessage"] {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+
+        [data-testid="stChatMessageContent"] {
+            max-width: calc(100vw - 80px);
+            font-size: 15px;
+        }
+
+
+        [data-testid="stChatInput"] textarea {
+            font-size: 15px !important;
+        }
+
+
+        section[data-testid="stSidebar"] {
+            width: 82vw;
+            max-width: 320px;
+        }
+    }
+
+
+    /* ======================================================
+       SMALL MOBILE
+       ====================================================== */
+
+    @media (max-width: 400px) {
+
+        .welcome-title {
+            font-size: 1.55rem;
+        }
+
+
+        .welcome-subtitle {
+            font-size: 0.85rem;
+        }
+
+
+        [data-testid="stChatMessageContent"] {
+            font-size: 14px;
+            max-width: calc(100vw - 70px);
+        }
+
+
+        .quick-question button {
+            font-size: 0.82rem;
+        }
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ============================================================
-# RESPONSE FORMATTERS
+# HELPER FUNCTIONS
 # ============================================================
 
-def format_staff_profile(name: str) -> str:
+def new_chat():
+    """Start a completely new conversation."""
 
-    data = STAFF_DATA[name]
+    st.session_state.messages = []
+    st.session_state.chat_title = "New chat"
 
-    response = f"### {name}\n\n"
 
-    response += (
-        f"**Role:** {data['role']}\n\n"
+def ask_question(question):
+    """Send a question to the chatbot."""
+
+    question = question.strip()
+
+    if not question:
+        return
+
+    # Save current conversation before generating response.
+    history = list(st.session_state.messages)
+
+    # Generate chatbot answer.
+    answer = generate_response(
+        question,
+        conversation=history,
     )
 
-    if data["subjects"]:
+    # Store user message.
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": question,
+        }
+    )
 
-        response += (
-            "**Subjects:** "
-            + ", ".join(data["subjects"])
-            + "\n\n"
-        )
+    # Store assistant message.
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer,
+        }
+    )
 
-    response += "**About:**\n\n"
+    # Automatically create conversation title.
+    if st.session_state.chat_title == "New chat":
 
-    for item in data["information"]:
+        title = question.replace(
+            "\n",
+            " ",
+        ).strip()
 
-        response += f"- {item}\n"
+        if len(title) > 40:
+            title = title[:40] + "..."
 
-    return response
+        st.session_state.chat_title = title
 
 
-def format_staff_list() -> str:
+# ============================================================
+# SIDEBAR
+# ============================================================
 
-    response = "### S V L COLLEGE Staff\n\n"
+with st.sidebar:
 
-    for index, (name, data) in enumerate(
-        STAFF_DATA.items(),
-        start=1,
+    # College name
+    st.header("S V L COLLEGE")
+
+    st.caption("College AI Assistant")
+
+
+    # New chat
+    if st.button(
+        "＋  New chat",
+        use_container_width=True,
     ):
 
-        response += (
-            f"{index}. **{name}** — "
-            f"{data['role']}\n"
-        )
-
-    return response
+        new_chat()
+        st.rerun()
 
 
-def format_subject_list() -> str:
-
-    subjects = []
-
-    for data in STAFF_DATA.values():
-
-        for subject in data["subjects"]:
-
-            if subject not in subjects:
-                subjects.append(subject)
-
-    response = "### Subjects & Areas\n\n"
-
-    for subject in subjects:
-
-        response += f"- **{subject}**\n"
-
-    return response
+    st.divider()
 
 
-def format_subject_teacher(
-    subject: str
-) -> str:
+    # ========================================================
+    # STAFF SEARCH
+    # ========================================================
 
-    teachers = find_staff_by_subject(subject)
+    st.caption("STAFF")
 
-    if not teachers:
-
-        return (
-            f"I couldn't find a faculty member specifically "
-            f"listed for **{subject}** in my current "
-            f"{COLLEGE_NAME} information."
-        )
-
-    if len(teachers) == 1:
-
-        return (
-            f"**{teachers[0]}** teaches "
-            f"**{subject}** at **{COLLEGE_NAME}**."
-        )
-
-    names = ", ".join(
-        f"**{name}**"
-        for name in teachers
-    )
-
-    return (
-        f"The faculty listed for **{subject}** are: "
-        f"{names}."
+    search = st.text_input(
+        "Search staff",
+        placeholder="Search staff...",
+        label_visibility="collapsed",
     )
 
 
-def help_response() -> str:
-
-    return (
-        "### How can I help?\n\n"
-        f"I'm the **{COLLEGE_NAME} Assistant**. "
-        "I can answer questions using the college "
-        "information available to me.\n\n"
-        "**Try asking:**\n\n"
-        "- How many teachers are there?\n"
-        "- Who are the staff members?\n"
-        "- Who teaches maths?\n"
-        "- Who teaches coding?\n"
-        "- What does Valli teach?\n"
-        "- Tell me about Emmanuel.\n"
-        "- Who is the founder?\n"
-        "- What subjects are taught?\n"
-    )
+    staff_names = get_staff_names()
 
 
-# ============================================================
-# FOLLOW-UP CONTEXT
-# ============================================================
+    # Filter staff.
+    if search.strip():
 
-def get_previous_staff(
-    conversation: Optional[List[Dict]]
-) -> Optional[str]:
-
-    if not conversation:
-        return None
-
-    for message in reversed(conversation):
-
-        if message.get("role") != "user":
-            continue
-
-        content = message.get(
-            "content",
-            "",
-        )
-
-        staff = find_staff(content)
-
-        if staff:
-            return staff
-
-    return None
-
-
-# ============================================================
-# MAIN RESPONSE ENGINE
-# ============================================================
-
-def generate_response(
-    user_input: str,
-    conversation: Optional[List[Dict]] = None,
-) -> str:
-    """
-    Main chatbot function.
-
-    This function is intentionally local and deterministic:
-    it answers from the S V L COLLEGE knowledge base instead
-    of inventing information.
-    """
-
-    if not user_input or not user_input.strip():
-
-        return (
-            "Please type a question and I'll help."
-        )
-
-    text = normalize(user_input)
-
-    # --------------------------------------------------------
-    # Greeting
-    # --------------------------------------------------------
-
-    if is_greeting(text):
-
-        return (
-            f"Hello! 👋\n\n"
-            f"I'm the **{COLLEGE_NAME} Assistant**. "
-            "What would you like to know?"
-        )
-
-    # --------------------------------------------------------
-    # Thanks
-    # --------------------------------------------------------
-
-    if is_thanks(text):
-
-        return (
-            "You're welcome! 😊\n\n"
-            f"Feel free to ask me anything about "
-            f"**{COLLEGE_NAME}**."
-        )
-
-    # --------------------------------------------------------
-    # Help
-    # --------------------------------------------------------
-
-    if is_help(text):
-
-        return help_response()
-
-    # --------------------------------------------------------
-    # Staff count
-    # --------------------------------------------------------
-
-    if is_count_question(text):
-
-        count = get_staff_count()
-
-        return (
-            f"There are **{count} staff members** "
-            f"in the current **{COLLEGE_NAME}** staff list."
-        )
-
-    # --------------------------------------------------------
-    # Staff list
-    # --------------------------------------------------------
-
-    if is_staff_list_question(text):
-
-        return format_staff_list()
-
-    # --------------------------------------------------------
-    # Subject list
-    # --------------------------------------------------------
-
-    if is_subject_list_question(text):
-
-        return format_subject_list()
-
-    # --------------------------------------------------------
-    # Founder
-    # --------------------------------------------------------
-
-    if is_founder_question(text):
-
-        return format_staff_profile(
-            "Uma Maheshwara Rao"
-        )
-
-    # --------------------------------------------------------
-    # Specific staff member
-    # --------------------------------------------------------
-
-    staff = find_staff(text)
-
-    if staff:
-
-        data = STAFF_DATA[staff]
-
-        # Subject/teaching question.
-        if is_subject_question(text):
-
-            if data["subjects"]:
-
-                subjects = ", ".join(
-                    f"**{subject}**"
-                    for subject in data["subjects"]
-                )
-
-                return (
-                    f"**{staff}** teaches "
-                    f"{subjects}."
-                )
-
-            return (
-                f"The current college information does not "
-                f"specify a subject taught by **{staff}**."
-            )
-
-        # Role question.
-        if is_role_question(text):
-
-            return (
-                f"**{staff}** is a "
-                f"**{data['role']}** at "
-                f"**{COLLEGE_NAME}**."
-            )
-
-        # General profile.
-        return format_staff_profile(staff)
-
-    # --------------------------------------------------------
-    # Subject → Teacher
-    # --------------------------------------------------------
-
-    subject = find_subject(text)
-
-    if subject:
-
-        if (
-            is_subject_teacher_question(text)
-            or "teacher" in text
-            or "faculty" in text
-            or "teaches" in text
-            or "teach" in text
-        ):
-
-            return format_subject_teacher(
-                subject
-            )
-
-    # --------------------------------------------------------
-    # Follow-up questions
-    # --------------------------------------------------------
-
-    previous_staff = get_previous_staff(
-        conversation
-    )
-
-    if previous_staff:
-
-        follow_up_words = [
-            "he",
-            "him",
-            "his",
-            "she",
-            "her",
-            "that teacher",
-            "this teacher",
-            "that faculty",
-            "this faculty",
+        staff_names = [
+            name
+            for name in staff_names
+            if search.lower() in name.lower()
         ]
 
-        if any(
-            word in text
-            for word in follow_up_words
+
+    # ========================================================
+    # STAFF LIST
+    # ========================================================
+
+    for staff_name in staff_names:
+
+        if st.button(
+            f"👤  {staff_name}",
+            key=f"staff_{staff_name}",
+            use_container_width=True,
         ):
 
-            return format_staff_profile(
-                previous_staff
+            ask_question(
+                f"Tell me about {staff_name}"
             )
 
-    # --------------------------------------------------------
-    # General college question
-    # --------------------------------------------------------
+            st.rerun()
 
-    if "college" in text:
 
-        return (
-            f"I can help with the information currently "
-            f"available about **{COLLEGE_NAME}**, especially "
-            "staff members, subjects, roles, and faculty "
-            "information.\n\n"
-            "Try asking:\n"
-            "- How many teachers are there?\n"
-            "- Who teaches Mathematics?\n"
-            "- Who is Valli?\n"
-            "- Who is the founder?"
+    st.divider()
+
+
+    # ========================================================
+    # CURRENT CHAT
+    # ========================================================
+
+    st.caption("CURRENT CHAT")
+
+    if st.session_state.messages:
+
+        st.caption(
+            st.session_state.chat_title
         )
 
+    else:
+
+        st.caption(
+            "No messages yet"
+        )
+
+
+    # Clear conversation.
+    if st.button(
+        "🗑️  Clear chat",
+        use_container_width=True,
+    ):
+
+        new_chat()
+        st.rerun()
+
+
+    st.divider()
+
+
+    st.caption(
+        "S V L COLLEGE AI Assistant"
+    )
+
+
+# ============================================================
+# TOP HEADER
+# ============================================================
+
+if st.session_state.messages:
+
+    st.markdown(
+        f"### {COLLEGE_NAME}"
+    )
+
+    st.caption(
+        "College AI Assistant"
+    )
+
+
+# ============================================================
+# WELCOME SCREEN
+# ============================================================
+
+if not st.session_state.messages:
+
+    # Space above welcome area.
+    st.markdown(
+        '<div class="welcome-space"></div>',
+        unsafe_allow_html=True,
+    )
+
+
+    st.markdown(
+        '<div class="welcome-title">S V L COLLEGE</div>',
+        unsafe_allow_html=True,
+    )
+
+
+    st.markdown(
+        '<div class="welcome-subtitle">'
+        'College AI Assistant'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
+    st.markdown(
+        '<div class="quick-title">'
+        'What can I help you with?'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
+    # ========================================================
+    # QUICK QUESTION 1 + 2
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+
+    with col1:
+
+        if st.button(
+            "How many teachers are there?",
+            use_container_width=True,
+            key="quick_1",
+        ):
+
+            ask_question(
+                "How many teachers are there?"
+            )
+
+            st.rerun()
+
+
+    with col2:
+
+        if st.button(
+            "Who teaches Mathematics?",
+            use_container_width=True,
+            key="quick_2",
+        ):
+
+            ask_question(
+                "Who teaches Mathematics?"
+            )
+
+            st.rerun()
+
+
+    # ========================================================
+    # QUICK QUESTION 3 + 4
+    # ========================================================
+
+    col3, col4 = st.columns(2)
+
+
+    with col3:
+
+        if st.button(
+            "Who is the founder?",
+            use_container_width=True,
+            key="quick_3",
+        ):
+
+            ask_question(
+                "Who is the founder?"
+            )
+
+            st.rerun()
+
+
+    with col4:
+
+        if st.button(
+            "Who teaches programming?",
+            use_container_width=True,
+            key="quick_4",
+        ):
+
+            ask_question(
+                "Who teaches programming?"
+            )
+
+            st.rerun()
+
+
+# ============================================================
+# CHAT HISTORY
+# ============================================================
+
+for message in st.session_state.messages:
+
+    role = message["role"]
+    content = message["content"]
+
+
     # --------------------------------------------------------
-    # Unknown question
+    # USER MESSAGE
     # --------------------------------------------------------
 
-    return (
-        "I don't have enough information to answer that "
-        "accurately from my current college knowledge base.\n\n"
-        f"I can help with **{COLLEGE_NAME} staff, subjects, "
-        "faculty roles, the founder, and other information "
-        "contained in my knowledge base**.\n\n"
-        "For example, try:\n"
-        "- **How many teachers are there?**\n"
-        "- **Who teaches maths?**\n"
-        "- **Tell me about Valli.**"
+    if role == "user":
+
+        with st.chat_message(
+            "user",
+            avatar="👤",
+        ):
+
+            st.markdown(content)
+
+
+    # --------------------------------------------------------
+    # ASSISTANT MESSAGE
+    # --------------------------------------------------------
+
+    elif role == "assistant":
+
+        with st.chat_message(
+            "assistant",
+            avatar="🤖",
+        ):
+
+            st.markdown(content)
+
+
+# ============================================================
+# CHAT INPUT
+# ============================================================
+
+user_input = st.chat_input(
+    "Message S V L College Assistant..."
+)
+
+
+if user_input:
+
+    ask_question(user_input)
+
+    st.rerun()
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+if st.session_state.messages:
+
+    st.caption(
+        "S V L COLLEGE · AI Assistant"
     )
